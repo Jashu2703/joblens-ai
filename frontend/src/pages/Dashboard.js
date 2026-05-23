@@ -16,11 +16,16 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [resumeRes, statsRes] = await Promise.all([resumeAPI.list(), jobsAPI.stats()]);
-      setResumes(resumeRes.data);
-      setJobStats(statsRes.data);
+      const [resumeRes, statsRes] = await Promise.all([
+        resumeAPI.list(), 
+        jobsAPI.stats()
+      ]);
+      setResumes(resumeRes.data || []);
+      setJobStats(statsRes.data || {});
     } catch (e) {
       console.error(e);
+      setResumes([]);
+      setJobStats({});
     }
   };
 

@@ -37,7 +37,13 @@ function AuthProvider({ children }) {
 
 function PrivateRoute({ children }) {
   const { isAuth } = useAuth();
-  return isAuth ? children : <Navigate to="/login" replace />;
+  if (!isAuth) return <Navigate to="/login" replace />;
+  try {
+    return children;
+  } catch (e) {
+    console.error(e);
+    return <div style={{padding:20}}>Something went wrong. <a href="/">Reload</a></div>;
+  }
 }
 
 function Layout({ children }) {
