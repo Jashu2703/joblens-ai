@@ -8,7 +8,7 @@ from app.schemas.auth import UserRegister, UserLogin, Token, UserOut
 router = APIRouter()
 
 
-@@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 def register(data: UserRegister, db: Session = Depends(get_db)):
     try:
         existing = db.query(User).filter(User.email == data.email).first()
