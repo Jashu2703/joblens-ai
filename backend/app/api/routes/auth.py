@@ -8,27 +8,33 @@ from app.schemas.auth import UserRegister, UserLogin, Token, UserOut
 router = APIRouter()
 
 
-@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+@@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 def register(data: UserRegister, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == data.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        existing = db.query(User).filter(User.email == data.email).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
 
-    user = User(
-        email=data.email,
-        name=data.name,
-        hashed_password=hash_password(data.password),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+        user = User(
+            email=data.email,
+            name=data.name,
+            hashed_password=hash_password(data.password[:72]),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
-    token = create_access_token({"sub": str(user.id)})
-    return Token(
-        access_token=token,
-        token_type="bearer",
-        user=UserOut.model_validate(user),
-    )
+        token = create_access_token({"sub": str(user.id)})
+        return Token(
+            access_token=token,
+            token_type="bearer",
+            user=UserOut.model_validate(user),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
 
 
 from fastapi.security import OAuth2PasswordRequestForm
