@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
 
+    ADZUNA_APP_ID: Optional[str] = None
+    ADZUNA_APP_KEY: Optional[str] = None
+
     ENVIRONMENT: str = "development"
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 10
