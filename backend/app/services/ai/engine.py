@@ -30,23 +30,62 @@ def get_llm_client():
 
 
 def call_llm(prompt: str) -> str:
-    """Call LLM and return text response."""
+    """Call LLM with Gemini -> OpenAI fallback."""
     client, provider = get_llm_client()
 
+    # Try Gemini first
     if provider == "gemini":
-        response = client.generate_content(prompt)
-        return response.text
+        try:
+            response = client.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            logger.warning(f"Gemini failed, switching to OpenAI: {e}")
 
+            # Fallback to OpenAI
+            if settings.OPENAI_API_KEY:
+                try:
+                    from openai import OpenAI
+
+                    openai_client = OpenAI(
+                        api_key=settings.OPENAI_API_KEY
+                    )
+
+                    response = openai_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": prompt
+                            }
+                        ],
+                        max_tokens=2000,
+                    )
+
+                    return response.choices[0].message.content
+
+                except Exception as oe:
+                    logger.error(
+                        f"OpenAI fallback failed: {oe}"
+                    )
+
+    # Direct OpenAI mode
     elif provider == "openai":
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=2000,
-        )
-        return response.choices[0].message.content
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                max_tokens=2000,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"OpenAI failed: {e}")
 
-    else:
-        return _mock_response(prompt)
+    return _mock_response(prompt)
 
 
 def _mock_response(prompt: str) -> str:
