@@ -30,62 +30,68 @@ def get_llm_client():
 
 
 def call_llm(prompt: str) -> str:
-    """Call LLM with Gemini -> OpenAI fallback."""
-    client, provider = get_llm_client()
+    """Call LLM via OpenRouter API."""
+    import httpx
 
-    # Try Gemini first
-    if provider == "gemini":
+    # Try OpenRouter first
+    openrouter_key = getattr(settings, "OPENROUTER_API_KEY", None)
+    if openrouter_key:
         try:
-            response = client.generate_content(prompt)
-            return response.text
+            with httpx.Client(timeout=30) as client:
+                response = client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openrouter_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": "meta-llama/llama-3.1-8b-instruct:free",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 2000,
+                    },
+                )
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
         except Exception as e:
-            logger.warning(f"Gemini failed, switching to OpenAI: {e}")
+            logger.warning(f"OpenRouter failed: {e}")
 
-            # Fallback to OpenAI
-            if settings.OPENAI_API_KEY:
-                try:
-                    from openai import OpenAI
-
-                    openai_client = OpenAI(
-                        api_key=settings.OPENAI_API_KEY
-                    )
-
-                    response = openai_client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": prompt
-                            }
-                        ],
-                        max_tokens=2000,
-                    )
-
-                    return response.choices[0].message.content
-
-                except Exception as oe:
-                    logger.error(
-                        f"OpenAI fallback failed: {oe}"
-                    )
-
-    # Direct OpenAI mode
-    elif provider == "openai":
+    # Try Gemini direct REST API
+    gemini_key = getattr(settings, "GEMINI_API_KEY", None)
+    if gemini_key:
         try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                max_tokens=2000,
-            )
-            return response.choices[0].message.content
+            with httpx.Client(timeout=30) as client:
+                response = client.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}",
+                    headers={"Content-Type": "application/json"},
+                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                )
+                data = response.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"]
         except Exception as e:
-            logger.error(f"OpenAI failed: {e}")
+            logger.warning(f"Gemini REST failed: {e}")
 
+    # Fall back to mock
+    logger.warning("All LLM providers failed. Using mock.")
     return _mock_response(prompt)
+
+    # # Direct OpenAI mode
+    # elif provider == "openai":
+    #     try:
+    #         response = client.chat.completions.create(
+    #             model="gpt-4o-mini",
+    #             messages=[
+    #                 {
+    #                     "role": "user",
+    #                     "content": prompt
+    #                 }
+    #             ],
+    #             max_tokens=2000,
+    #         )
+    #         return response.choices[0].message.content
+    #     except Exception as e:
+    #         logger.error(f"OpenAI failed: {e}")
+
+    # return _mock_response(prompt)
 
 
 def _mock_response(prompt: str) -> str:
