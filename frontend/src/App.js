@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -74,6 +75,7 @@ export default function App() {
           </Routes>
         </Layout>
       </BrowserRouter>
+      <Analytics />
     </AuthProvider>
   );
 }
