@@ -30,68 +30,137 @@ def get_llm_client():
 
 
 def call_llm(prompt: str) -> str:
-    """Call LLM via OpenRouter API."""
+    """Call LLM via OpenRouter -> Gemini -> Mock fallback."""
     import httpx
 
-    # Try OpenRouter first
-    openrouter_key = getattr(settings, "OPENROUTER_API_KEY", None)
+    # ----------------------------
+    # 1. Try OpenRouter
+    # ----------------------------
+    openrouter_key = getattr(
+        settings,
+        "OPENROUTER_API_KEY",
+        None
+    )
+
     if openrouter_key:
         try:
             with httpx.Client(timeout=30) as client:
                 response = client.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers={
-                        "Authorization": f"Bearer {openrouter_key}",
-                        "Content-Type": "application/json",
+                        "Authorization":
+                            f"Bearer {openrouter_key}",
+                        "Content-Type":
+                            "application/json",
+                        "HTTP-Referer":
+                            "https://joblens-ai-nine.vercel.app",
+                        "X-Title":
+                            "JobLens AI"
                     },
                     json={
-                        "model": "meta-llama/llama-3.1-8b-instruct:free",
-                        "messages": [{"role": "user", "content": prompt}],
+                        "model":
+                            "meta-llama/llama-3.1-8b-instruct:free",
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": prompt
+                            }
+                        ],
                         "max_tokens": 2000,
                     },
                 )
-                data = response.json()
-                return data["choices"][0]["message"]["content"]
-        except Exception as e:
-            logger.warning(f"OpenRouter failed: {e}")
 
-    # Try Gemini direct REST API
-    gemini_key = getattr(settings, "GEMINI_API_KEY", None)
+                data = response.json()
+
+                logger.warning(
+                    f"OPENROUTER RESPONSE: {data}"
+                )
+
+                if "choices" in data:
+                    return (
+                        data["choices"][0]
+                        ["message"]["content"]
+                    )
+
+                raise Exception(
+                    data.get("error", {})
+                    .get(
+                        "message",
+                        "Unknown OpenRouter error"
+                    )
+                )
+
+        except Exception as e:
+            logger.warning(
+                f"OpenRouter failed: {e}"
+            )
+
+    # ----------------------------
+    # 2. Try Gemini REST
+    # ----------------------------
+    gemini_key = getattr(
+        settings,
+        "GEMINI_API_KEY",
+        None
+    )
+
     if gemini_key:
         try:
             with httpx.Client(timeout=30) as client:
                 response = client.post(
                     f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}",
-                    headers={"Content-Type": "application/json"},
-                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                    headers={
+                        "Content-Type":
+                            "application/json"
+                    },
+                    json={
+                        "contents": [
+                            {
+                                "parts": [
+                                    {
+                                        "text": prompt
+                                    }
+                                ]
+                            }
+                        ]
+                    },
                 )
+
                 data = response.json()
-                return data["candidates"][0]["content"]["parts"][0]["text"]
+
+                logger.warning(
+                    f"GEMINI RESPONSE: {data}"
+                )
+
+                if "candidates" in data:
+                    return (
+                        data["candidates"][0]
+                        ["content"]["parts"][0]
+                        ["text"]
+                    )
+
+                raise Exception(
+                    data.get("error", {})
+                    .get(
+                        "message",
+                        "Unknown Gemini error"
+                    )
+                )
+
         except Exception as e:
-            logger.warning(f"Gemini REST failed: {e}")
+            logger.warning(
+                f"Gemini failed: {e}"
+            )
 
-    # Fall back to mock
-    logger.warning("All LLM providers failed. Using mock.")
+    # ----------------------------
+    # 3. Mock fallback
+    # ----------------------------
+    logger.warning(
+        "All LLM providers failed. "
+        "Using mock."
+    )
+
     return _mock_response(prompt)
-
-    # # Direct OpenAI mode
-    # elif provider == "openai":
-    #     try:
-    #         response = client.chat.completions.create(
-    #             model="gpt-4o-mini",
-    #             messages=[
-    #                 {
-    #                     "role": "user",
-    #                     "content": prompt
-    #                 }
-    #             ],
-    #             max_tokens=2000,
-    #         )
-    #         return response.choices[0].message.content
-    #     except Exception as e:
-    #         logger.error(f"OpenAI failed: {e}")
-
-    # return _mock_response(prompt)
 
 
 def _mock_response(prompt: str) -> str:
