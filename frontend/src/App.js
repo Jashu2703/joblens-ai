@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Analyze from "./pages/Analyze";
 import Jobs from "./pages/Jobs";
 import Interview from "./pages/Interview";
+import Copilot from "./pages/Copilot";
 import Navbar from "./components/Navbar";
 
 const AuthContext = createContext(null);
@@ -37,13 +38,7 @@ function AuthProvider({ children }) {
 
 function PrivateRoute({ children }) {
   const { isAuth } = useAuth();
-  if (!isAuth) return <Navigate to="/login" replace />;
-  try {
-    return children;
-  } catch (e) {
-    console.error(e);
-    return <div style={{padding:20}}>Something went wrong. <a href="/">Reload</a></div>;
-  }
+  return isAuth ? children : <Navigate to="/login" replace />;
 }
 
 function Layout({ children }) {
@@ -70,6 +65,7 @@ export default function App() {
             <Route path="/analyze" element={<PrivateRoute><Analyze /></PrivateRoute>} />
             <Route path="/jobs" element={<PrivateRoute><Jobs /></PrivateRoute>} />
             <Route path="/interview" element={<PrivateRoute><Interview /></PrivateRoute>} />
+            <Route path="/copilot" element={<PrivateRoute><Copilot /></PrivateRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>

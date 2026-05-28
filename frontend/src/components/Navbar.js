@@ -5,6 +5,7 @@ import { useAuth } from "../App";
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: "⊞" },
   { path: "/analyze", label: "Analyze", icon: "◎" },
+  { path: "/copilot", label: "AI Copilot", icon: "🚀" },
   { path: "/jobs", label: "Jobs", icon: "◈" },
   { path: "/interview", label: "Interview Prep", icon: "◆" },
 ];

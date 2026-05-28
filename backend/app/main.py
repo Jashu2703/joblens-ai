@@ -6,7 +6,7 @@ import os
 from loguru import logger
 
 from app.core.database import engine, Base
-from app.api.routes import auth, resume, jobs, analyze, interview
+from app.api.routes import auth, resume, jobs, analyze, interview, copilot
 from app.core.config import settings
 
 
@@ -31,8 +31,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -42,6 +42,7 @@ app.include_router(resume.router, prefix="/api/resume", tags=["Resume"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(analyze.router, prefix="/api/analyze", tags=["Analysis"])
 app.include_router(interview.router, prefix="/api/interview", tags=["Interview Prep"])
+app.include_router(copilot.router, prefix="/api/copilot", tags=["AI Copilot"])
 
 
 @app.get("/", tags=["Health"])
